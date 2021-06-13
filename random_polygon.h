@@ -11,6 +11,7 @@
 #include <limits>
 #include <random>
 #include <unordered_set>
+#include <cassert>
 using namespace std;
 
 class RandomGen {

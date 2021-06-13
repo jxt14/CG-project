@@ -7,7 +7,13 @@
 #include <sstream>
 #include <vector>
 #include "random_polygon.h"
+#include <cassert>
+#ifdef _WIN32
 #include "httplib.h"
+#include <Windows.h>
+#else
+#include "httplib.h"
+#endif
 #include "json.hpp"
 
 using json = nlohmann::json;
