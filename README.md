@@ -19,7 +19,7 @@ cmake ..
 
 这里会默认使用MSVC而不是MinGW，如下图
 
-![image](https://github.com/jxt14/CG-project/tree/generation/image/screenshot.png)
+![image](image/screenshot.png)
 
 ```bash
 cmake . --build
