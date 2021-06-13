@@ -3,22 +3,24 @@
 #include <algorithm>
 
 struct Point{
-    long long x,y;
+    double x,y;
 };
 
 Point a[10011];
 
 int n;
+int ed_id;
 
 int main()
 {
-    int tx,ty;
+    double tx,ty;
     scanf("%d", &n);
     for (int i = 1; i <= n; i++) {
-        scanf("%d%d", &tx, &ty);
+        scanf("%lf%lf", &tx, &ty);
         a[i].x = tx;
         a[i].y = ty;
     }
+    scanf("%d", &ed_id);
     
 
 }
