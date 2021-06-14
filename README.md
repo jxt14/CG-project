@@ -22,7 +22,7 @@ cmake ..
 ![image](https://github.com/jxt14/CG-project/tree/generation/image/screenshot.png)
 
 ```bash
-cmake . --build
+cmake --build .
 ```
 
 会在Debug文件夹下生成可执行文件
