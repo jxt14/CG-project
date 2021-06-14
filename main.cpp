@@ -18,13 +18,11 @@
 
 using json = nlohmann::json;
 
-void to_json(json &j, const Vertex &vertex)
-{
+void to_json(json &j, const Vertex &vertex) {
     j = json::array({vertex.x, vertex.y});
 }
 
-string polygon_to_json(int n, const vector<Vertex> polygon)
-{
+string polygon_to_json(int n, const vector<Vertex> polygon) {
     json j = {
         {"n", n},
         {"vertices", polygon},
@@ -32,8 +30,7 @@ string polygon_to_json(int n, const vector<Vertex> polygon)
     return j.dump();
 }
 
-int main()
-{
+int main() {
     httplib::Server server;
 
     server.Get(R"(/generate/(\d+))", [](const httplib::Request &req, httplib::Response &res) {
@@ -47,8 +44,7 @@ int main()
     });
 
     auto ret = server.set_mount_point("/", "../static");
-    if (!ret)
-    {
+    if (!ret) {
         printf("Bind static error\n");
     }
     printf("listen start\n");
