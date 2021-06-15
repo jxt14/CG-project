@@ -51,9 +51,7 @@
             const yScale = d3.scaleLinear().domain(d3.extent(vertices, v => v[1])).range([innerHeight, 0]);
 
             mainGroup.selectAll('polygon').data([vertices]).join('polygon')
-                .attr('points', vs => {
-                    return vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' ');
-                })
+                .attr('points', vs => vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' '))
                 .attr('stroke', 'black')
                 .attr('fill', 'none')
                 .attr('stroke-width', 2)
@@ -62,12 +60,19 @@
             
             mainGroup.selectAll('path.base').data([baseline]).join('path')
                 .attr('class', 'base')
-                .attr('d', line => {
-                    return `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`
-                })
+                .attr('d', line => `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`)
                 .attr('stroke', 'red')
                 .attr('fill', 'none')
                 .attr('stroke-width', 5)
+            
+            mainGroup.selectAll('circle.start').data([vertices[0]]).join('circle')
+                .attr('class', 'start')
+                .attr('r', 10)
+                .attr('cx', v => xScale(v[0]))
+                .attr('cy', v => yScale(v[1]))
+                .attr('stroke', 'none')
+                .attr('fill', 'black')
+
         }
 
 
