@@ -12,14 +12,18 @@
 #include <random>
 #include <unordered_set>
 #include <cassert>
+#include "json.hpp"
 using namespace std;
+namespace generation {
+
+using json = nlohmann::json;
 
 class RandomGen {
     default_random_engine e;
     uniform_int_distribution<int> u;
 public:
-    RandomGen(int n): e(time(NULL)) {
-        u = uniform_int_distribution<int>(0, n);
+    RandomGen(int low, int high): e(time(NULL)) {
+        u = uniform_int_distribution<int>(low, high);
     }
 
     int random() {
@@ -189,7 +193,12 @@ void print_edges(const vector<Node<Edge*>*> edges) {
     }
 }
 
-vector<Vertex> random_polygon(int n) {
+struct LighthouseInput {
+    vector<Vertex> vs;
+    int base;
+};
+
+LighthouseInput random_polygon(int n) {
     int r = n / 2 - 2;
     DoublyLinkedList<Vertex*> vertices;
     // grids[i] (index start from 1)
@@ -241,7 +250,7 @@ vector<Vertex> random_polygon(int n) {
         // assert(area <= RAND_MAX);
         // printf("r: %d\n", r);
 
-        auto rg = RandomGen(area - 1);
+        auto rg = RandomGen(0, area - 1);
 
         while(1) {
             int idx;
@@ -509,14 +518,31 @@ vector<Vertex> random_polygon(int n) {
     edges.destory_data();
     grids.clear();
 
-    vector<Vertex> vs;
+    LighthouseInput input;
     auto v = vertices.head;
     do {
-        vs.push_back(Vertex(*v -> data));
-        v = v -> next;
+        input.vs.push_back(Vertex(*v -> data));
+        v = v -> prev;
     } while(v != vertices.head);
     vertices.destory_data();
-    return vs;
+    input.base = RandomGen(1, n).random();
+
+    return input;
+}
+
+void to_json(json &j, const Vertex& vertex) {
+    j = json::array({vertex.x, vertex.y});
+}
+
+string polygon_to_json(int n, const vector<Vertex> vertices, const int base) {
+    json j = {
+        {"n", n},
+        {"vertices", vertices},
+        {"base", base},
+    };
+    return j.dump();
+}
+
 }
 
 #endif
