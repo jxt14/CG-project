@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include "random_polygon.h"
+#include "histo_part.h"
 #include <cassert>
 #ifdef _WIN32
 #include "httplib.h"
@@ -16,19 +17,6 @@
 #endif
 #include "json.hpp"
 
-using json = nlohmann::json;
-
-void to_json(json &j, const Vertex &vertex) {
-    j = json::array({vertex.x, vertex.y});
-}
-
-string polygon_to_json(int n, const vector<Vertex> polygon) {
-    json j = {
-        {"n", n},
-        {"vertices", polygon},
-    };
-    return j.dump();
-}
 
 int main() {
     httplib::Server server;
@@ -36,8 +24,8 @@ int main() {
     server.Get(R"(/generate/(\d+))", [](const httplib::Request &req, httplib::Response &res) {
         auto n = stoi(req.matches[1]);
         printf("n: %d\n", n);
-        auto vertices = random_polygon(n);
-        auto str = polygon_to_json(n, vertices);
+        auto input = generation::random_polygon(n);
+        auto str = generation::polygon_to_json(n, input.vs, input.base);
         printf("%s\n", str.c_str());
         res.set_header("Access-Control-Allow-Origin", "*");
         res.set_content(str, "application/json");
