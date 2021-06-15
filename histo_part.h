@@ -9,6 +9,15 @@
 namespace histogram {
 struct Point{
     double x,y;
+    Point()
+    {
+        x = y = 0.0;
+    }
+    Point(double x_, double y_)
+    {
+        x = x_;
+        y = y_;
+    }
 };
 
 struct Edge{
@@ -18,11 +27,11 @@ struct Edge{
 };
 
 struct Polygon{
-    Point *a;
     int n;
     int id, fa_id;
+    std::vector<Point> a;
     Polygon(){
-        a = NULL;
+        a.clear();
         n = 0;
         id = 0;
         fa_id = -1;
@@ -71,9 +80,9 @@ Edge check(Edge base_edge, Edge chk_edge)
     return ret;
 }
 
-std::vector<Polygon*> GetBaseHistogram(Polygon *pl, int ed_id)
+std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
 {
-    std::vector<Polygon*> res;
+    std::vector<Polygon> res;
     Edge pol[10011];
     Edge hist[10011];
     Point gram[10011];
@@ -81,12 +90,16 @@ std::vector<Polygon*> GetBaseHistogram(Polygon *pl, int ed_id)
     int base_type;
 
     res.clear();
-    Polygon *new_p;
+    Polygon new_p;
     Edge ths_ed;
     int n;
     Point *a;
-    n = pl->n;
-    a = pl->a;
+    n = pl.n;
+    a = new Point[n+2];
+    for (int i = 0; i <= n+1; i++) {
+        a[i].x = pl.a[i].x;
+        a[i].y = pl.a[i].y;
+    }
     for (int i = 1; i <= n; i++) {
         if (fabs(a[i].x-a[i+1].x) < 1e-8) {
             pol[i].e_base = a[i].x;
@@ -195,13 +208,11 @@ std::vector<Polygon*> GetBaseHistogram(Polygon *pl, int ed_id)
     gram[gram_tot+1].y = gram[1].y;
     gram[0].x = gram[gram_tot].x;
     gram[0].y = gram[gram_tot].y;
-    new_p = new Polygon();
-    new_p->a = new Point[gram_tot+2];
+    new_p.a.clear();
+    new_p.n = gram_tot;
     for (int i = 0; i <= gram_tot+1; i++) {
-        new_p->a[i].x = gram[i].x;
-        new_p->a[i].y = gram[i].y;
+        new_p.a.push_back(Point(gram[i].x,gram[i].y));
     }
-    new_p->n = gram_tot;
     res.push_back(new_p);
 
     int left_tot, bz;
@@ -269,15 +280,13 @@ std::vector<Polygon*> GetBaseHistogram(Polygon *pl, int ed_id)
                     // for (int j = 1; j <= left_tot; j++) {
                     //     printf("%.2lf %.2lf\n", left_pol[j].x, left_pol[j].y);
                     // }
-                    new_p = new Polygon();
-                    new_p->a = new Point[left_tot+2];
-                    new_p->n = left_tot;
+                    new_p.a.clear();
+                    new_p.n = left_tot;
+                    new_p.a.push_back(Point(left_pol[left_tot].x, left_pol[left_tot].y));
                     for (int j = 1; j <= left_tot; j++) {
-                        new_p->a[j].x = left_pol[j].x;
-                        new_p->a[j].y = left_pol[j].y;
+                        new_p.a.push_back(Point(left_pol[j].x, left_pol[j].y));
                     }
-                    new_p->a[0].x = left_pol[left_tot].x; new_p->a[0].y = left_pol[left_tot].y;
-                    new_p->a[left_tot+1].x = left_pol[1].x; new_p->a[left_tot+1].y = left_pol[1].y;
+                    new_p.a.push_back(Point(left_pol[1].x, left_pol[1].y));
                     res.push_back(new_p);
                     left_tot = 0;
                     bz = bz+2;
@@ -305,15 +314,13 @@ std::vector<Polygon*> GetBaseHistogram(Polygon *pl, int ed_id)
                 // for (int j = 1; j <= left_tot; j++) {
                 //     printf("%.2lf %.2lf\n", left_pol[j].x, left_pol[j].y);
                 // }
-                new_p = new Polygon();
-                new_p->a = new Point[left_tot+2];
-                new_p->n = left_tot;
+                new_p.a.clear();
+                new_p.n = left_tot;
+                new_p.a.push_back(Point(left_pol[left_tot].x, left_pol[left_tot].y));
                 for (int j = 1; j <= left_tot; j++) {
-                    new_p->a[j].x = left_pol[j].x;
-                    new_p->a[j].y = left_pol[j].y;
+                    new_p.a.push_back(Point(left_pol[j].x, left_pol[j].y));
                 }
-                new_p->a[0].x = left_pol[left_tot].x; new_p->a[0].y = left_pol[left_tot].y;
-                new_p->a[left_tot+1].x = left_pol[1].x; new_p->a[left_tot+1].y = left_pol[1].y;
+                new_p.a.push_back(Point(left_pol[1].x, left_pol[1].y));
                 res.push_back(new_p);
                 left_tot = 0;
             }
@@ -323,32 +330,32 @@ std::vector<Polygon*> GetBaseHistogram(Polygon *pl, int ed_id)
     return res;
 }
 
-std::vector<Polygon*> HistoPart(Polygon *pl, int ed_id)
+std::vector<Polygon> HistoPart(Polygon pl, int ed_id)
 {
     int l,r,ted;
     int his_tot;
-    std::vector<Polygon*> queue, base_res, res;
+    std::vector<Polygon> queue, base_res, res;
     his_tot = 0;
-    Polygon *tmp;
+    Polygon tmp;
     queue.clear();
     res.clear();
     base_res.clear();
     l = 0;
     r = 0;
-    pl->fa_id = -1;
+    pl.fa_id = -1;
     queue.push_back(pl);
     while (l <= r) {
         if (l == 0) ted = ed_id;
-        else ted = queue[l]->n;
+        else ted = queue[l].n;
         base_res = GetBaseHistogram(queue[l], ted);
         tmp = base_res[0];
-        tmp->id = his_tot;
+        tmp.id = his_tot;
         his_tot++;
-        tmp->fa_id = queue[l]->fa_id;
+        tmp.fa_id = queue[l].fa_id;
         res.push_back(tmp);
         for (int i = 1; i < base_res.size(); i++) {
             tmp = base_res[i];
-            tmp->fa_id = his_tot - 1;
+            tmp.fa_id = his_tot - 1;
             r++;
             queue.push_back(tmp);
         }
