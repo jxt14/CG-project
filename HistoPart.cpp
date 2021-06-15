@@ -238,59 +238,30 @@ std::vector<Polygon*> GetBaseHistogram(Polygon *pl, int ed_id)
         if (pre < 0) pre = pre + n;
         if (fabs(a[ti].x - gram[bz+1].x) < 1e-8 && fabs(a[ti].y - gram[bz+1].y) < 1e-8) {
             bz = bz + 2;
-            last_in = 1;
+            tmp = 1;
         }
-        else {
-            tmp = in_segment(a[ti], gram[bz], gram[bz+1]);
-            if (tmp == 0) {
-                if (last_in == 1) {
-                    if (in_segment(gram[bz], a[ti], a[pre]) == 1) {
-                        left_tot = 1;
-                        left_pol[1].x = gram[bz].x; left_pol[1].y = gram[bz].y;
-                        left_tot++;
-                        left_pol[left_tot].x = a[ti].x; left_pol[left_tot].y = a[ti].y;
-                    }
-                    else {
-                        left_tot = 1;
-                        left_pol[1].x = a[pre].x; left_pol[1].y = a[pre].y;
-                        left_tot++;
-                        left_pol[left_tot].x = a[ti].x; left_pol[left_tot].y = a[ti].y;
-                    }
+        else tmp = in_segment(a[ti], gram[bz], gram[bz+1]);
+        if (tmp == 0) {
+            if (last_in == 1) {
+                if (in_segment(gram[bz], a[ti], a[pre]) == 1) {
+                    left_tot = 1;
+                    left_pol[1].x = gram[bz].x; left_pol[1].y = gram[bz].y;
+                    left_tot++;
+                    left_pol[left_tot].x = a[ti].x; left_pol[left_tot].y = a[ti].y;
                 }
                 else {
-                    seg2 = in_segment(gram[bz+1], a[ti], a[pre]);
-                    if (seg2 == 1) {
-                        left_tot++;
-                        left_pol[left_tot].x = gram[bz+1].x;
-                        left_pol[left_tot].y = gram[bz+1].y;
-                        // printf("Left Poly:\n");
-                        // for (int j = 1; j <= left_tot; j++) {
-                        //     printf("%.2lf %.2lf\n", left_pol[j].x, left_pol[j].y);
-                        // }
-                        new_p = new Polygon();
-                        new_p->a = new Point[left_tot+2];
-                        new_p->n = left_tot;
-                        for (int j = 1; j <= left_tot; j++) {
-                            new_p->a[j].x = left_pol[j].x;
-                            new_p->a[j].y = left_pol[j].y;
-                        }
-                        new_p->a[0].x = left_pol[left_tot].x; new_p->a[0].y = left_pol[left_tot].y;
-                        new_p->a[left_tot+1].x = left_pol[1].x; new_p->a[left_tot+1].y = left_pol[1].y;
-                        res.push_back(new_p);
-                        left_tot = 0;
-                        bz = bz+2;
-                    }
-                    else {
-                        left_tot++;
-                        left_pol[left_tot].x = a[ti].x; left_pol[left_tot].y = a[ti].y;
-                    }
+                    left_tot = 1;
+                    left_pol[1].x = a[pre].x; left_pol[1].y = a[pre].y;
+                    left_tot++;
+                    left_pol[left_tot].x = a[ti].x; left_pol[left_tot].y = a[ti].y;
                 }
             }
             else {
-                if (last_in == 0) {
+                seg2 = in_segment(gram[bz+1], a[ti], a[pre]);
+                if (seg2 == 1) {
                     left_tot++;
-                    left_pol[left_tot].x = a[ti].x;
-                    left_pol[left_tot].y = a[ti].y;
+                    left_pol[left_tot].x = gram[bz+1].x;
+                    left_pol[left_tot].y = gram[bz+1].y;
                     // printf("Left Poly:\n");
                     // for (int j = 1; j <= left_tot; j++) {
                     //     printf("%.2lf %.2lf\n", left_pol[j].x, left_pol[j].y);
@@ -306,10 +277,45 @@ std::vector<Polygon*> GetBaseHistogram(Polygon *pl, int ed_id)
                     new_p->a[left_tot+1].x = left_pol[1].x; new_p->a[left_tot+1].y = left_pol[1].y;
                     res.push_back(new_p);
                     left_tot = 0;
+                    bz = bz+2;
+                    if (in_segment(gram[bz], a[ti], a[pre]) == 1) {
+                        if (fabs(a[ti].x - gram[bz].x) > 1e-8 || fabs(a[ti].y - gram[bz].y) > 1e-8) {
+                            left_tot++;
+                            left_pol[left_tot].x = gram[bz].x; left_pol[left_tot].y = gram[bz].y;
+                            left_tot++;
+                            left_pol[left_tot].x = a[ti].x, left_pol[left_tot].y = a[ti].y;
+                        }
+                    }
+                }
+                else {
+                    left_tot++;
+                    left_pol[left_tot].x = a[ti].x; left_pol[left_tot].y = a[ti].y;
                 }
             }
-            last_in = tmp;
         }
+        else {
+            if (last_in == 0) {
+                left_tot++;
+                left_pol[left_tot].x = a[ti].x;
+                left_pol[left_tot].y = a[ti].y;
+                // printf("Left Poly:\n");
+                // for (int j = 1; j <= left_tot; j++) {
+                //     printf("%.2lf %.2lf\n", left_pol[j].x, left_pol[j].y);
+                // }
+                new_p = new Polygon();
+                new_p->a = new Point[left_tot+2];
+                new_p->n = left_tot;
+                for (int j = 1; j <= left_tot; j++) {
+                    new_p->a[j].x = left_pol[j].x;
+                    new_p->a[j].y = left_pol[j].y;
+                }
+                new_p->a[0].x = left_pol[left_tot].x; new_p->a[0].y = left_pol[left_tot].y;
+                new_p->a[left_tot+1].x = left_pol[1].x; new_p->a[left_tot+1].y = left_pol[1].y;
+                res.push_back(new_p);
+                left_tot = 0;
+            }
+        }
+        last_in = tmp;
     }
     return res;
 }
