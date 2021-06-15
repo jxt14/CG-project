@@ -22,7 +22,7 @@ cmake ..
 ![image](image/screenshot.png)
 
 ```bash
-cmake . --build
+cmake --build .
 ```
 
 会在Debug文件夹下生成可执行文件
@@ -30,7 +30,6 @@ cmake . --build
 ```bash
 .\Debug\lighthouse.exe
 ```
-
 
 
 
