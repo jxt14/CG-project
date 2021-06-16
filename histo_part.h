@@ -95,7 +95,7 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
     res.clear();
     Polygon new_p;
     Edge ths_ed;
-    int n;
+    int n, ytot;
     Point *a;
     n = pl.n;
     a = new Point[n+2];
@@ -145,12 +145,18 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
             ti = ed_id - i;
             if (ti <= 0) ti = ti + n;
         }
-        if (pol[ti].type == (base_type^1) || pol[ti].type == base_type) {
+        if (pol[ti].type == (base_type^1)) {
             ths_ed = check(pol[ed_id], pol[ti]);
             if (ths_ed.type != -1) {
+                //printf("Insert ed: %.2lf %.2lf %.2lf\n", ths_ed.e_base, ths_ed.e_l, ths_ed.e_r);
                 ins = 1;
+                ytot = tot;
                 while (tot > 0) {
                     if (ths_ed.e_r <= hist[tot].e_l) break;
+                    if (ths_ed.e_l >= hist[tot].e_r) {
+                        tot--;
+                        continue;
+                    }
                     if (base_type == 0 || base_type == 3) cmp_type = 1;
                     else cmp_type = 0; 
                     if ((cmp_type == 1 && ths_ed.e_base > hist[tot].e_base)||(cmp_type == 0 && ths_ed.e_base < hist[tot].e_base)) {
@@ -173,6 +179,9 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
                     hist[tot].e_base = ths_ed.e_base;
                     hist[tot].e_l = ths_ed.e_l;
                     hist[tot].e_r = ths_ed.e_r;
+                }
+                else {
+                    tot = ytot;
                 }
             }
         }
@@ -213,8 +222,12 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
     gram[0].y = gram[gram_tot].y;
     new_p.a.clear();
     new_p.n = gram_tot;
+    //printf("GetBaseGram\n");
     for (int i = 0; i <= gram_tot+1; i++) {
         new_p.a.push_back(Point(gram[i].x,gram[i].y));
+        //if (i > 0 && i <= gram_tot) {
+        //    printf("%.2lf %.2lf\n", gram[i].x, gram[i].y);
+        //}
     }
     res.push_back(new_p);
 
@@ -229,6 +242,7 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
         while (1) {
             if (bz > gram_tot) break;
             if (fabs(a[ti].x - gram[bz].x) < 1e-8 && fabs(a[ti].y - gram[bz].y) < 1e-8) {
+                last_in = 1;
                 nxt = ti+1;
                 if (nxt > n) nxt = nxt - n;
                 if (fabs(a[nxt].x - gram[bz+1].x) < 1e-8 && fabs(a[nxt].y - gram[bz+1].y) < 1e-8) {
