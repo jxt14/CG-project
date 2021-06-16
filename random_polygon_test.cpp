@@ -1,8 +1,9 @@
 #include "random_polygon.h"
 
 int n;
-int main() {
-    scanf("%d", &n);
+int main(int argc, char* argv[]) {
+    // scanf("%d", &n);
+    n = strtol(argv[1], NULL, 10);
     printf("%d\n", n);
     auto input = generation::random_polygon(n);
     assert(n == input.vs.size());
