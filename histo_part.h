@@ -86,10 +86,10 @@ Edge check(Edge base_edge, Edge chk_edge)
 std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
 {
     std::vector<Polygon> res;
-    Edge pol[10011];
-    Edge hist[10011];
-    Point gram[10011];
-    Point left_pol[10011];
+    Edge pol[5011];
+    Edge hist[5011];
+    Point gram[5011];
+    Point left_pol[5011];
     int base_type;
 
     res.clear();
@@ -143,7 +143,7 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
         }
         else {
             ti = ed_id - i;
-            if (ti < 0) ti = ti + n;
+            if (ti <= 0) ti = ti + n;
         }
         if (pol[ti].type == (base_type^1) || pol[ti].type == base_type) {
             ths_ed = check(pol[ed_id], pol[ti]);
@@ -330,6 +330,7 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
         }
         last_in = tmp;
     }
+    delete a;
     return res;
 }
 
