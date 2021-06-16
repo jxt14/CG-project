@@ -12,12 +12,21 @@
     <div style="margin-top: 30px; text-align:center;" text-align='center'>
         <input type="number" id="n-vertices">
         <button id="generate-btn" class="button">Generate</button>
+        <button id="drawinput-btn" class="button">DrawInput</button>
+        <button id="partition-btn" class="button">Partition</button>
+        <button id="drawhistogram-btn" class="button">DrawHistogram</button>
     </div>
     <br>
 
     <svg width="1000" height="1000" id="canvas" class="svgs" 
         style='display: block; margin: 0 auto; border:rgb(85, 85, 85); border-style: solid; border-width: 1px;'></svg>
+
     <script>
+        let polygon;
+        let histograms;
+
+        let xScale, yScale;
+
         d3.select("button#generate-btn")
         .on("click", function () {
             console.log("click generate")
@@ -28,10 +37,49 @@
             }
             else {
                 d3.json(`http://127.0.0.1:8080/generate/${n}`).then((data) => {
-                    render(data);
+                    polygon = data
+                    render_polygon()
                 })
             }
         })
+
+        d3.select("button#drawinput-btn").on('click', function() {
+            if(!polygon) {
+                alert("Please generate random polygon first.")
+            }
+            else {
+                render_polygon()
+            }
+
+        })
+        d3.select("button#partition-btn")
+        .on("click", function () {
+            console.log("click partition")
+            if(!polygon) {
+                alert("Please generate random polygon first.")
+            }
+            else {
+                d3.json(`http://127.0.0.1:8080/partition`, {
+                    body: JSON.stringify(polygon),
+                    headers: {"content-type": "application/json"},
+                    method: "POST",
+                }).then((data) => {
+                    console.log(data)
+                    histograms = data
+                    render_partition()
+                })
+            }
+        })
+
+        d3.select("button#drawhistogram-btn").on('click', function() {
+            if(!histograms) {
+                alert("Please partiion first.")
+            }
+            else {
+                render_partition()
+            }
+        })
+
         const canvasSvg = d3.select('#canvas');
         const margin = { top: 30, right: 60, bottom: 30, left: 60 };
         const width = canvasSvg.attr('width');
@@ -41,20 +89,23 @@
         const mainGroup = canvasSvg.append('g')
             .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
-        function render(polygon) {
+        function render_polygon() {
             const vertices = polygon.vertices
             const base = polygon.base
             const xList = vertices.map(v => v[0]);
             const yList = vertices.map(v => v[1]);
 
-            const xScale = d3.scaleLinear().domain(d3.extent(vertices, v => v[0])).range([0, innerWidth]);
-            const yScale = d3.scaleLinear().domain(d3.extent(vertices, v => v[1])).range([innerHeight, 0]);
+            xScale = d3.scaleLinear().domain(d3.extent(vertices, v => v[0])).range([0, innerWidth]);
+            yScale = d3.scaleLinear().domain(d3.extent(vertices, v => v[1])).range([innerHeight, 0]);
 
-            mainGroup.selectAll('polygon').data([vertices]).join('polygon')
+            mainGroup.selectAll('polygon.input').data([vertices]).join('polygon')
                 .attr('points', vs => vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' '))
                 .attr('stroke', 'black')
-                .attr('fill', 'none')
+                .attr('class', 'input')
+                .style('fill', 'none')
                 .attr('stroke-width', 2)
+                .style('visibility', 'visible')
+            
             
             const baseline = [vertices[base - 1], vertices[base % polygon.n]]
             
@@ -62,8 +113,9 @@
                 .attr('class', 'base')
                 .attr('d', line => `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`)
                 .attr('stroke', 'red')
-                .attr('fill', 'none')
+                .style('fill', 'none')
                 .attr('stroke-width', 5)
+                .style('visibility', 'visible')
             
             mainGroup.selectAll('circle.start').data([vertices[0]]).join('circle')
                 .attr('class', 'start')
@@ -71,10 +123,40 @@
                 .attr('cx', v => xScale(v[0]))
                 .attr('cy', v => yScale(v[1]))
                 .attr('stroke', 'none')
-                .attr('fill', 'black')
+                .style('fill', 'black')
+                .style('visibility', 'visible')
 
+            mainGroup.selectAll('polygon.histogram').style('visibility', 'hidden')
+            mainGroup.selectAll('path.bases').style('visibility', 'hidden')
         }
 
+        function render_partition() {
+            mainGroup.selectAll('polygon.input').style('visibility', 'hidden')
+            mainGroup.selectAll('path.base').style('visibility', 'hidden')
+            mainGroup.selectAll('circle.start').style('visibility', 'hidden')
+            const sp = d3.scalePoint().domain(histograms.map(h => h.id)).range([0, 1]);
+
+            mainGroup.selectAll('polygon.histogram').data(histograms).join('polygon')
+                .attr('class', 'histogram')
+                .attr('points', h => h.vertices.map(v => `${xScale(v[0])},${yScale(v[1])}`))
+                .attr('stroke', 'black')
+                .style("fill", h => d3.interpolateSpectral(sp(h.id)))
+                .style('opacity', 0.5)
+                .attr('stroke-width', 2)
+                .style('visibility', 'visible')
+            
+            mainGroup.selectAll('path.bases').data(histograms).join('path')
+                .attr('class', 'bases')
+                .attr('d', h => {
+                    const line = [h.vertices[0], h.vertices[1]]
+                    return `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`
+                })
+                .attr('stroke', h => d3.interpolateSpectral(sp(h.id)))
+                .style('fill', 'none')
+                .attr('stroke-width', 10)
+                .style('visibility', 'visible')
+            
+        }
 
     </script>
 </body>

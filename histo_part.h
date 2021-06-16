@@ -5,19 +5,16 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include "json.hpp"
 
 namespace histogram {
+using json = nlohmann::json;
+
 struct Point{
     double x,y;
-    Point()
-    {
-        x = y = 0.0;
-    }
-    Point(double x_, double y_)
-    {
-        x = x_;
-        y = y_;
-    }
+    Point():x(0),y(0) {}
+    Point(double x_, double y_):x(x_), y(y_) {}
+    Point(const Point& p):x(p.x), y(p.y) {}
 };
 
 struct Edge{
@@ -26,16 +23,22 @@ struct Edge{
     int type;
 };
 
+
 struct Polygon{
     int n;
     int id, fa_id;
     std::vector<Point> a;
-    Polygon(){
+    Polygon() {
         a.clear();
         n = 0;
         id = 0;
         fa_id = -1;
     }
+};
+
+struct Input {
+    Polygon p;
+    int base;
 };
 
 int in_segment(Point r, Point a, Point b)
@@ -362,6 +365,40 @@ std::vector<Polygon> HistoPart(Polygon pl, int ed_id)
         l++;
     }
     return res;
+}
+
+void to_json(json &j, const Polygon& polygon) {
+    j["n"] = polygon.n;
+    j["id"] = polygon.id;
+    j["parent"] = polygon.fa_id;
+    j["vertices"] = json::array();
+    auto vertices = polygon.a;
+
+    for(int i = 1; i <= polygon.n; i ++) {
+        j["vertices"].push_back({
+            vertices[i].x, vertices[i].y
+        });
+    }
+}
+
+void from_json(const json& j, Point& p) {
+    j.at(0).get_to(p.x);
+    j.at(1).get_to(p.y);
+}
+void from_json(const json& j, Input& input) {
+    j.at("base").get_to(input.base);
+    auto& p = input.p;
+    j.at("n").get_to(p.n);
+    int n = p.n;
+    auto vertices = j.at("vertices");
+    p.id = 0;
+    p.fa_id = -1;
+    p.a.resize(n + 2);
+    for(int i = 1; i <= n; i ++) {
+        vertices.at(i - 1).get_to(p.a[i]);
+    }
+    p.a[0] = p.a[n];
+    p.a[n + 1] = p.a[1];
 }
 }
 

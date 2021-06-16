@@ -17,11 +17,12 @@
 #endif
 #include "json.hpp"
 
+using json = nlohmann::json;
 
 int main() {
     httplib::Server server;
 
-    server.Get(R"(/generate/(\d+))", [](const httplib::Request &req, httplib::Response &res) {
+    server.Get(R"(/generate/(\d+))", [](const httplib::Request& req, httplib::Response& res) {
         auto n = stoi(req.matches[1]);
         printf("n: %d\n", n);
         auto input = generation::random_polygon(n);
@@ -30,6 +31,19 @@ int main() {
         res.set_header("Access-Control-Allow-Origin", "*");
         res.set_content(str, "application/json");
     });
+
+    server.Post("/partition", [](const httplib::Request& req, httplib::Response& res) {
+        res.set_header("Access-Control-Allow-Origin", "*");
+        auto j = json::parse(req.body);
+        histogram::Input input;
+        j.get_to(input);
+        
+        json histograms = HistoPart(input.p, input.base);
+        auto str = histograms.dump();
+        printf("%s\n", str.c_str());
+        res.set_content(str, "application/json");
+    });
+
 
     auto ret = server.set_mount_point("/", "../static");
     if (!ret) {
