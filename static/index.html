@@ -12,9 +12,18 @@
     <div style="margin-top: 30px; text-align:center;" text-align='center'>
         <input type="number" id="n-vertices">
         <button id="generate-btn" class="button">Generate</button>
-        <button id="drawinput-btn" class="button">DrawInput</button>
         <button id="partition-btn" class="button">Partition</button>
+        <button id="drawinput-btn" class="button">DrawInput</button>
         <button id="drawhistogram-btn" class="button">DrawHistogram</button>
+        <button id="reset-btn" class="button">Reset</button>
+        <br>
+        <br>
+
+        <div>
+             <div>Time</div>
+             <input id="poly-range" type="range" min="0" max="0" value="0" style="width: 400px; margin-right: 10px;"/>
+             <input id="his-range" type="range" min="0" max="0" value="0" style="width: 400px; margin-right: 10px; display: none;"/>
+        </div>
     </div>
     <br>
 
@@ -22,10 +31,30 @@
         style='display: block; margin: 0 auto; border:rgb(85, 85, 85); border-style: solid; border-width: 1px;'></svg>
 
     <script>
-        let polygon;
+        let rect_polygon;
+        let polygon_history;
         let histograms;
 
         let xScale, yScale;
+
+        const canvasSvg = d3.select('#canvas');
+        const margin = { top: 30, right: 60, bottom: 30, left: 60 };
+        const width = canvasSvg.attr('width');
+        const height = canvasSvg.attr('height');
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+        const mainGroup = canvasSvg.append('g')
+            .attr('transform', `translate(${margin.left}, ${margin.top})`);
+        
+        const polygonGroup = mainGroup.append('g')
+        const histoGroup = mainGroup.append('g')
+
+        const zoomed = ({ transform }) => {
+            mainGroup.attr('transform', `translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`)
+        };
+        const polyRanger = d3.select('#poly-range')
+        const hisRanger = d3.select('#his-range')
+        let zoom = d3.zoom().on('zoom', zoomed);
 
         d3.select("button#generate-btn")
         .on("click", function () {
@@ -37,36 +66,55 @@
             }
             else {
                 d3.json(`http://127.0.0.1:8080/generate/${n}`).then((data) => {
-                    polygon = data
-                    render_polygon()
+                    polygon_history = data.history
+                    rect_polygon = data.polygon
+                    render_polygon(data.polygon)
+                    const max = polygon_history.length
+                    // odd number show polygon only
+                    // even number also show cut
+                    // 2 * max + 1 show the final result
+                    polyRanger
+                        .style('display', 'inline')
+                        .attr('min', 1)
+                        .attr('max', 2 * max + 1)
+                        .attr('value', 2 * max + 1)
+                    hisRanger.style('display', 'none')
                 })
             }
         })
 
         d3.select("button#drawinput-btn").on('click', function() {
-            if(!polygon) {
+            if(!rect_polygon) {
                 alert("Please generate random polygon first.")
             }
             else {
-                render_polygon()
+                render_polygon(rect_polygon)
+                polyRanger.style('display', 'inline')
+                hisRanger.style('display', 'none')
             }
 
         })
         d3.select("button#partition-btn")
         .on("click", function () {
             console.log("click partition")
-            if(!polygon) {
+            if(!rect_polygon) {
                 alert("Please generate random polygon first.")
             }
             else {
                 d3.json(`http://127.0.0.1:8080/partition`, {
-                    body: JSON.stringify(polygon),
+                    body: JSON.stringify(rect_polygon),
                     headers: {"content-type": "application/json"},
                     method: "POST",
                 }).then((data) => {
                     console.log(data)
                     histograms = data
                     render_partition()
+                    polyRanger.style('display', 'none')
+                    hisRanger.style('display', 'inline')
+                        .style('display', 'inline')
+                        .attr('min', 0)
+                        .attr('max', data.length)
+                        .attr('value', data.length)
                 })
             }
         })
@@ -77,75 +125,114 @@
             }
             else {
                 render_partition()
+                hisRanger.style('display', 'inline')
+                polyRanger.style('display', 'none')
             }
         })
 
-        const canvasSvg = d3.select('#canvas');
-        const margin = { top: 30, right: 60, bottom: 30, left: 60 };
-        const width = canvasSvg.attr('width');
-        const height = canvasSvg.attr('height');
-        const innerWidth = width - margin.left - margin.right;
-        const innerHeight = height - margin.top - margin.bottom;
-        const mainGroup = canvasSvg.append('g')
-            .attr('transform', `translate(${margin.left}, ${margin.top})`);
+        function init() {
+            mainGroup.call(zoom)
+            polyRanger.on('input', function () {
+                let i = polyRanger.property('value')
+                if(i == polyRanger.property('max')) {
+                    render_polygon(rect_polygon)
+                } else {
+                    render_polygon(polygon_history[parseInt((i - 1) /2)])
+                    render_cut(polygon_history[parseInt((i - 1) / 2)], i % 2 == 0)
+                }
+            })
 
-        function render_polygon() {
+            hisRanger.on('input', function () {
+                let n = hisRanger.property('value')
+                render_partition(n)
+            })
+        }
+
+        init()
+
+        d3.select("button#reset-btn").on('click', function() {
+            mainGroup.call(zoom.transform, d3.zoomIdentity)
+        })
+
+        function render_cut(polygon, show) {
+            let g = polygonGroup.attr('visibility', 'visible')
+
+            g.selectAll('polygon.grid').data([polygon.grid]).join('polygon')
+                .attr('class', 'grid')
+                .attr('points', g => {
+                    const vs = [[g[0], g[1]], [g[0] + 1, g[1]], [g[0] + 1, g[1] + 1], [g[0], g[1] + 1]]
+                    return vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' ')
+                })
+                .attr('stroke', 'none')
+                .attr('class', 'input')
+                .style('fill', 'rgb(194, 222, 207)')
+                .style('visibility', show ? 'visible' : 'hidden')
+            
+            g.selectAll('polygon.cut').data([polygon.cut]).join('polygon')
+                .attr('class', 'cut')
+                .attr('points', vs => {
+                    return vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' ')
+                })
+                .attr('stroke', 'red')
+                .attr('stroke-dasharray', 3)
+                .attr('class', 'input')
+                .style('fill', 'none')
+                .attr('stroke-width', 2)
+                .style('visibility', show ? 'visible' : 'hidden')
+        }
+
+        function render_polygon(polygon) {
             const vertices = polygon.vertices
-            const base = polygon.base
             const xList = vertices.map(v => v[0]);
             const yList = vertices.map(v => v[1]);
 
             xScale = d3.scaleLinear().domain(d3.extent(vertices, v => v[0])).range([0, innerWidth]);
             yScale = d3.scaleLinear().domain(d3.extent(vertices, v => v[1])).range([innerHeight, 0]);
 
-            mainGroup.selectAll('polygon.input').data([vertices]).join('polygon')
+            let g = polygonGroup.attr('visibility', 'visible')
+            histoGroup.attr('visibility', 'hidden')
+
+            g.selectAll('polygon.input').data([vertices]).join('polygon')
                 .attr('points', vs => vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' '))
                 .attr('stroke', 'black')
                 .attr('class', 'input')
                 .style('fill', 'none')
                 .attr('stroke-width', 2)
-                .style('visibility', 'visible')
             
-            
-            const baseline = [vertices[base - 1], vertices[base % polygon.n]]
-            
-            mainGroup.selectAll('path.base').data([baseline]).join('path')
+            const base = polygon.base
+            const baseline = base ? [[vertices[base - 1], vertices[base % polygon.n]]] : []
+            g.selectAll('path.base').data(baseline).join('path')
                 .attr('class', 'base')
                 .attr('d', line => `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`)
                 .attr('stroke', 'red')
                 .style('fill', 'none')
                 .attr('stroke-width', 5)
-                .style('visibility', 'visible')
             
-            mainGroup.selectAll('circle.start').data([vertices[0]]).join('circle')
+            g.selectAll('circle.start').data([vertices[0]]).join('circle')
                 .attr('class', 'start')
                 .attr('r', 10)
                 .attr('cx', v => xScale(v[0]))
                 .attr('cy', v => yScale(v[1]))
                 .attr('stroke', 'none')
                 .style('fill', 'black')
-                .style('visibility', 'visible')
-
-            mainGroup.selectAll('polygon.histogram').style('visibility', 'hidden')
-            mainGroup.selectAll('path.bases').style('visibility', 'hidden')
+            
         }
 
-        function render_partition() {
-            mainGroup.selectAll('polygon.input').style('visibility', 'hidden')
-            mainGroup.selectAll('path.base').style('visibility', 'hidden')
-            mainGroup.selectAll('circle.start').style('visibility', 'hidden')
+        function render_partition(n) {
+            let g = histoGroup.attr('visibility', 'visible')
+            polygonGroup.attr('visibility', 'hidden')
+
             const sp = d3.scalePoint().domain(histograms.map(h => h.id)).range([0, 1]);
 
-            mainGroup.selectAll('polygon.histogram').data(histograms).join('polygon')
+            g.selectAll('polygon.histogram').data(histograms.slice(0, n), h => h.id).join('polygon')
                 .attr('class', 'histogram')
                 .attr('points', h => h.vertices.map(v => `${xScale(v[0])},${yScale(v[1])}`))
                 .attr('stroke', 'black')
                 .style("fill", h => d3.interpolateSpectral(sp(h.id)))
                 .style('opacity', 0.5)
-                .attr('stroke-width', 2)
-                .style('visibility', 'visible')
+                .attr('stroke-width', 1)
             
-            mainGroup.selectAll('path.bases').data(histograms).join('path')
+            g.selectAll('path.bases').data(histograms.slice(0, n)).join('path')
                 .attr('class', 'bases')
                 .attr('d', h => {
                     const line = [h.vertices[0], h.vertices[1]]
@@ -153,10 +240,23 @@
                 })
                 .attr('stroke', h => d3.interpolateSpectral(sp(h.id)))
                 .style('fill', 'none')
-                .attr('stroke-width', 10)
-                .style('visibility', 'visible')
-            
-        }
+                .attr('stroke-width', 2)
 
+            g.selectAll('polygon.input').data([rect_polygon.vertices]).join('polygon')
+                .attr('points', vs => vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' '))
+                .attr('stroke', 'black')
+                .attr('class', 'input')
+                .style('fill', 'none')
+                .attr('stroke-width', 2)
+
+            const base = rect_polygon.base
+            const baseline = [[rect_polygon.vertices[base - 1], rect_polygon.vertices[base % rect_polygon.n]]]
+            g.selectAll('path.base').data(baseline).join('path')
+                .attr('class', 'base')
+                .attr('d', line => `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`)
+                .attr('stroke', 'red')
+                .style('fill', 'none')
+                .attr('stroke-width', 5)
+        }
     </script>
 </body>
