@@ -53,6 +53,13 @@ struct Polygon{
     }
 };
 
+struct LightHouse{
+    double ax,ay;
+    double bx,by;
+    LightHouse(): ax(0), ay(0), bx(0), by(0) {}
+    LightHouse(double ax_, double ay_, double bx_, double by_): ax(ax_), ay(ay_), bx(bx_), by(by_) {}
+};
+
 struct Input {
     Polygon p;
     int base;
@@ -431,7 +438,7 @@ std::vector<MatchEdge> GetPropagation(Polygon pl)
     return ret;
 }
 
-void GetLighthouse(Polygon pl)
+std::vector<LightHouse> GetLighthouse(Polygon pl)
 {
     std::vector<MatchEdge> propa;
     std::vector<Edge> interval;
@@ -443,6 +450,7 @@ void GetLighthouse(Polygon pl)
     double s_c;
     double tmpl;
     int tot, num_son;
+    tot = 0;
     num_son = pl.son_base.size();
     tmp_int = new Edge[num_son + 2];
 
@@ -486,6 +494,32 @@ void GetLighthouse(Polygon pl)
             }
         }
     }
+
+    std::vector<LightHouse> ret;
+    Edge ths_ed;
+    ret.clear();
+    int ti, bz;
+    bz = 0;
+    for (int i = 3; i <= pl.n; i+=2) {
+        if (my_base.type == 0 || my_base.type == 2) ti = i;
+        else ti = pl.n + 2 - i;
+        ths_ed = getEdge(pl.a[ti], pl.a[ti+1]);
+        while (bz < interval.size()) {
+            if (ths_ed.e_l <= interval[bz].e_l && ths_ed.e_r >= interval[bz].e_l) {
+                if (my_base.type == 0 || my_base.type == 1) {
+                    ret.push_back(LightHouse(ths_ed.e_base, interval[bz].e_l, my_base.e_base, interval[bz].e_l));
+                }
+                else {
+                    ret.push_back(LightHouse(interval[bz].e_l, ths_ed.e_base, interval[bz].e_l, my_base.e_base));
+                }
+                bz++;
+            }
+            else break;
+        }
+        if (bz >= interval.size()) break;
+    }
+    delete tmp_int;
+    return ret;
 
 }
 
@@ -534,6 +568,26 @@ std::vector<Polygon> HistoPart(Polygon pl, int ed_id)
     }
 
     return res;
+}
+
+std::vector<LightHouse> solveLH(Polygon pl, int ed_id)
+{
+    std::vector<Polygon> hists;
+    std::vector<LightHouse> ret, tmplh;
+
+    hists = HistoPart(pl, ed_id);
+
+    ret.clear();
+    for (int i = 0; i < hists.size(); i++) {
+        if (hists[i].son.size() != 0) {
+            tmplh = GetLighthouse(hists[i]);
+            for (int j = 0; j < tmplh.size(); j++) ret.push_back(tmplh[j]);
+        }
+    }
+
+    ret.push_back(LightHouse(pl.a[ed_id].x, pl.a[ed_id].y, pl.a[ed_id+1].x, pl.a[ed_id+1].y));
+    return ret;
+
 }
 
 void to_json(json &j, const Polygon& polygon) {
