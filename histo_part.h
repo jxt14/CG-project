@@ -469,7 +469,7 @@ std::vector<LightHouse> GetLighthouse(Polygon pl)
         if (fabs(s_base.e_l - my_base.e_base) > fabs(s_base.e_r - my_base.e_base)) s_c = s_base.e_l;
         else s_c = s_base.e_r;
         for (int j = 0; j < propa.size(); j++) {
-            if (propa[j].e_l >= s_c && propa[j].e_r <= s_c) {
+            if (propa[j].e_l <= s_c && propa[j].e_r >= s_c) {
                 if (fabs(propa[j].base_l - s_base.e_base) < 1e-8 || fabs(propa[j].base_r - s_base.e_base) < 1e-8) {
                     tot++;
                     tc = 1;
