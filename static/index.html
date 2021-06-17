@@ -73,12 +73,15 @@
                     // odd number show polygon only
                     // even number also show cut
                     // 2 * max + 1 show the final result
-                    polyRanger.attr('min', 1).attr('max', 2 * max + 1).attr('value', 2 * max + 1)
+                    polyRanger
+                        .style('display', 'inline')
+                        .attr('min', 1)
+                        .attr('max', 2 * max + 1)
+                        .attr('value', 2 * max + 1)
                     hisRanger.style('display', 'none')
                 })
             }
         })
-
 
         d3.select("button#drawinput-btn").on('click', function() {
             if(!rect_polygon) {
@@ -106,8 +109,12 @@
                     console.log(data)
                     histograms = data
                     render_partition()
-                    hisRanger.style('display', 'inline')
                     polyRanger.style('display', 'none')
+                    hisRanger.style('display', 'inline')
+                        .style('display', 'inline')
+                        .attr('min', 0)
+                        .attr('max', data.length)
+                        .attr('value', data.length)
                 })
             }
         })
@@ -125,7 +132,7 @@
 
         function init() {
             mainGroup.call(zoom)
-            polyRanger.on("input", function () {
+            polyRanger.on('input', function () {
                 let i = polyRanger.property('value')
                 if(i == polyRanger.property('max')) {
                     render_polygon(rect_polygon)
@@ -133,7 +140,12 @@
                     render_polygon(polygon_history[parseInt((i - 1) /2)])
                     render_cut(polygon_history[parseInt((i - 1) / 2)], i % 2 == 0)
                 }
-            });
+            })
+
+            hisRanger.on('input', function () {
+                let n = hisRanger.property('value')
+                render_partition(n)
+            })
         }
 
         init()
@@ -206,13 +218,13 @@
             
         }
 
-        function render_partition() {
+        function render_partition(n) {
             let g = histoGroup.attr('visibility', 'visible')
             polygonGroup.attr('visibility', 'hidden')
 
             const sp = d3.scalePoint().domain(histograms.map(h => h.id)).range([0, 1]);
 
-            g.selectAll('polygon.histogram').data(histograms).join('polygon')
+            g.selectAll('polygon.histogram').data(histograms.slice(0, n), h => h.id).join('polygon')
                 .attr('class', 'histogram')
                 .attr('points', h => h.vertices.map(v => `${xScale(v[0])},${yScale(v[1])}`))
                 .attr('stroke', 'black')
@@ -220,7 +232,7 @@
                 .style('opacity', 0.5)
                 .attr('stroke-width', 1)
             
-            g.selectAll('path.bases').data(histograms).join('path')
+            g.selectAll('path.bases').data(histograms.slice(0, n)).join('path')
                 .attr('class', 'bases')
                 .attr('d', h => {
                     const line = [h.vertices[0], h.vertices[1]]
@@ -229,6 +241,22 @@
                 .attr('stroke', h => d3.interpolateSpectral(sp(h.id)))
                 .style('fill', 'none')
                 .attr('stroke-width', 2)
+
+            g.selectAll('polygon.input').data([rect_polygon.vertices]).join('polygon')
+                .attr('points', vs => vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' '))
+                .attr('stroke', 'black')
+                .attr('class', 'input')
+                .style('fill', 'none')
+                .attr('stroke-width', 2)
+
+            const base = rect_polygon.base
+            const baseline = [[rect_polygon.vertices[base - 1], rect_polygon.vertices[base % rect_polygon.n]]]
+            g.selectAll('path.base').data(baseline).join('path')
+                .attr('class', 'base')
+                .attr('d', line => `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`)
+                .attr('stroke', 'red')
+                .style('fill', 'none')
+                .attr('stroke-width', 5)
         }
     </script>
 </body>
