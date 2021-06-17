@@ -22,7 +22,7 @@ class RandomGen {
     default_random_engine e;
     uniform_int_distribution<int> u;
 public:
-    RandomGen(int low, int high): e(time(NULL)) {
+    RandomGen(default_random_engine _e, int low, int high): e(_e) {
         u = uniform_int_distribution<int>(low, high);
     }
 
@@ -115,7 +115,7 @@ public:
             h = h -> next;
         } while(h != head);
     }
-    
+
 
     ~DoublyLinkedList() {
         if(!head) return;
@@ -187,6 +187,14 @@ struct Entry {
 };
 
 
+void write_vertices(const DoublyLinkedList<Vertex*>& vertices, vector<Vertex>& dst) {
+    auto v = vertices.head;
+    do {
+        dst.push_back(Vertex(*v -> data));
+        v = v -> prev;
+    } while(v != vertices.head);
+}
+
 void print_edges(const vector<Node<Edge*>*> edges) {
     for(auto e: edges) {
         e -> data -> print();
@@ -196,15 +204,62 @@ void print_edges(const vector<Node<Edge*>*> edges) {
 struct LighthouseInput {
     vector<Vertex> vs;
     int base;
+    LighthouseInput(): base(0) {
+        vs.clear();
+    }
+
+    ~LighthouseInput() {
+        vs.clear();
+        vector<Vertex>().swap(vs);
+    }
 };
 
-LighthouseInput random_polygon(int n) {
+struct Record { // record the generate process
+    vector<Vertex> vertices;
+    vector<Vertex> cut;
+    int p, q;
+    Record(): p(0), q(0) {
+        vertices.clear();
+        cut.clear();
+    }
+
+    void print() {
+        printf("p, q: %d %d\n", p, q);
+        printf("cut\n");
+        for(auto v: cut) {
+            v.print();
+        }
+        printf("vertices\n");
+        for(auto v: vertices) {
+            v.print();
+        }
+    }
+    ~Record() {
+        vertices.clear();
+        cut.clear();
+        vector<Vertex>().swap(vertices);
+        vector<Vertex>().swap(cut);
+    }
+};
+
+struct Output {
+    vector<Record> history;
+    LighthouseInput polygon;
+    Output(): polygon() {
+        history.clear();
+    } 
+    ~Output() {
+        history.clear();
+        vector<Record>().swap(history);
+    }
+};
+
+Output random_polygon(int n, bool need_record=false) {
     int r = n / 2 - 2;
     DoublyLinkedList<Vertex*> vertices;
     // grids[i] (index start from 1)
     // = number of grids between [i, i + 1]
     // total number of grids
-    // DoublyLinkedList<int> grids; 
     vector<int> grids;
     int area = 1;
     vector<Node<Edge*>*> vedges;
@@ -245,12 +300,16 @@ LighthouseInput random_polygon(int n) {
     // printf("vertical edges: \n");
     // print_edges(vedges);
 
+    Output output;
+
+    default_random_engine e(time(NULL));
+
     while(r > 0) {
         unordered_set<int> is_checked;
         // assert(area <= RAND_MAX);
         // printf("r: %d\n", r);
 
-        auto rg = RandomGen(0, area - 1);
+        auto rg = RandomGen(e, 0, area - 1);
 
         while(1) {
             int idx;
@@ -270,7 +329,7 @@ LighthouseInput random_polygon(int n) {
             // find correct (p, q) of the idx(th) grid
             // find the four lines intersect with the rays started from center of C to NSWE
             // center of C: (p + 1/2, q + 1/2)
-            {
+            // {
                 // find q
                 int num_of_grids_before_q = 0;
                 for(int i = 0; i < grids.size(); i ++) {
@@ -317,8 +376,13 @@ LighthouseInput random_polygon(int n) {
                         bottom = NULL;
                     }
                 }
-            }
+            
+            // }
             // perform cut check
+            assert(left);
+            assert(right);
+            assert(top);
+            assert(bottom);
 
             // printf("(p, q): (%d, %d)\n", p, q);
             // printf("left\n");
@@ -342,9 +406,11 @@ LighthouseInput random_polygon(int n) {
             ms.push_back(Entry(bottom -> data -> v2, bottom, true));
 
             random_shuffle(ms.begin(), ms.end());
-            Entry* en = NULL;
+            // Entry* en = NULL;
+            int eid = -1;
             Node<Vertex*>* m_node = NULL;
-            for(auto entry: ms) {
+            for(int i = 0; i < ms.size(); i ++) {
+                auto entry = ms[i];
                 auto v = vertices.head;
                 int cnt = 0;
                 do {
@@ -357,15 +423,39 @@ LighthouseInput random_polygon(int n) {
                 } while(v != vertices.head);
                 if(cnt <= 1) {
                     // find appropriate m
-                    en = &entry;
-                    assert(m_node -> data == en -> m);
+                    eid = i;
+                    assert(m_node -> data == entry.m);
                     break;
                 }
             }
-            if(!en) continue;
-            // printf("m\n"); m_node -> data -> print();
-            // printf("inter_e\n");en -> inter_e -> data -> print();
-            // printf("ccw: %d\n", en -> ccw);
+            // if(!en) continue;
+            if(eid < 0) continue;
+            // printf("%p\n", (void*) en -> inter_e -> data);
+            // assert(en -> m);
+
+            // record the process
+            auto& en = ms[eid];
+            if(need_record) {
+                Record rec;
+                write_vertices(vertices, rec.vertices);
+                rec.p = p;
+                rec.q = q;
+                Vertex s;
+                if(en.inter_e -> data -> vertical) {
+                    s.x = en.m -> x;
+                    s.y = c.y;
+                } else {
+                    s.x = c.x;
+                    s.y = en.m -> y;
+                }
+                Vertex s_bar = Vertex(*(en.m) - s + c);
+
+                rec.cut.push_back(c);
+                rec.cut.push_back(s_bar);
+                rec.cut.push_back(Vertex(*(en.m)));
+                rec.cut.push_back(s);
+                output.history.push_back(rec);
+            }
 
             // inflate
             auto v = vertices.head;
@@ -379,7 +469,6 @@ LighthouseInput random_polygon(int n) {
                 v = v -> next;
             } while(v != vertices.head);
             
-
             // grids and area ?
             grids.insert(grids.begin() + q - 1, grids[q - 1]);
             area += grids[q - 1];
@@ -387,7 +476,7 @@ LighthouseInput random_polygon(int n) {
             Edge* se = NULL;
 
             for(auto he: hedges) {
-                if(!he -> data -> intersect_with_line(p)) continue;
+                if(!(he -> data -> intersect_with_line(p))) continue;
                 if(!fi) {
                     fi = he -> data;
                 } else if(!se) {
@@ -421,15 +510,21 @@ LighthouseInput random_polygon(int n) {
             // vertices.print();
 
             // cut
+            // assert(en);
+            // assert(en -> inter_e);
+            // printf("vertical: %d\n", en.inter_e -> data -> vertical);
             Vertex* vc = new Vertex(p + 1, q + 1);
-            Node<Edge*>* inter_e = en -> inter_e;
-            Vertex* m = en -> m;
+            Node<Edge*>* inter_e = en.inter_e;
+            Vertex* m = en.m;
+            // printf("%p\n", (void*) en.inter_e -> data);
+            // printf("%p\n", (void*) m);
 
             Vertex* s = inter_e -> data -> vertical ? new Vertex(m -> x, vc -> y) : new Vertex(vc -> x, m -> y);
+            // printf("111\n");
             Vertex* s_bar = new Vertex(*m - *s + *vc);
 
-            Node<Edge*>* s_edge = en -> ccw ? inter_e : inter_e -> prev;
-            if(!en -> ccw) swap(s, s_bar);
+            Node<Edge*>* s_edge = en.ccw ? inter_e : inter_e -> prev;
+            if(!en.ccw) swap(s, s_bar);
 
             // vertices ?
             Node<Vertex*>* prev = m_node -> prev;
@@ -495,42 +590,18 @@ LighthouseInput random_polygon(int n) {
             break;
         }
         r --;
-
-        // printf("\n");
-        // printf("area: %d\n", area);
-        // printf("grid: \n");
-        // for(auto g: grids) {
-        //     printf("%d ", g);
-        // }
-
-        // printf("\n");
-        // printf("horizontal edges: \n");
-        // print_edges(hedges);
-
-        // printf("\n");
-        // printf("vertical edges: \n");
-        // print_edges(vedges);
-
-        // printf("\n");
-        // printf("Polygon: \n");
-        // vertices.print();
     }
     edges.destory_data();
     grids.clear();
 
-    LighthouseInput input;
-    auto v = vertices.head;
-    do {
-        input.vs.push_back(Vertex(*v -> data));
-        v = v -> prev;
-    } while(v != vertices.head);
+    write_vertices(vertices, output.polygon.vs);
     vertices.destory_data();
-    input.base = RandomGen(1, n).random();
+    output.polygon.base = RandomGen(e, 1, n).random();
 
-    return input;
+    return output;
 }
 
-void to_json(json &j, const Vertex& vertex) {
+void to_json(json& j, const Vertex& vertex) {
     j = json::array({vertex.x, vertex.y});
 }
 
@@ -543,6 +614,22 @@ string polygon_to_json(int n, const vector<Vertex> vertices, const int base) {
     return j.dump();
 }
 
+void to_json(json& j, const Record& record) {
+    j["vertices"] = record.vertices;
+    j["cut"] = record.cut;
+    j["grid"] = {record.p, record.q};
+}
+
+void to_json(json& j, const LighthouseInput& li) {
+    j["base"] = li.base;
+    j["n"] = li.vs.size();
+    j["vertices"] = li.vs;
+}
+
+void to_json(json& j, const Output& output) {
+    j["history"] = output.history;
+    j["polygon"] = output.polygon;
+}
 }
 
 #endif
