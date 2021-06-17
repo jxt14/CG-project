@@ -21,15 +21,27 @@ struct Edge{
     double e_base;
     double e_l, e_r;
     int type;
+    Edge():e_base(0),e_l(0),e_r(0),type(0) {}
+    Edge(double b_, double l_, double r_, int t_): e_base(b_), e_l(l_), e_r(r_), type(t_) {} 
 };
 
+struct MatchEdge{
+    double base_l, base_r;
+    double e_l, e_r;
+    MatchEdge(): base_l(0), base_r(0), e_l(0), e_r(0) {}
+    MatchEdge(double bl_, double br_, double l_, double r_):base_l(bl_), base_r(br_), e_l(l_), e_r(r_) {}
+};
 
 struct Polygon{
     int n;
     int id, fa_id;
     std::vector<Point> a;
+    std::vector<int> son;
+    std::vector<Edge> son_base;
     Polygon() {
         a.clear();
+        son.clear();
+        son_base.clear();
         n = 0;
         id = 0;
         fa_id = -1;
@@ -83,13 +95,45 @@ Edge check(Edge base_edge, Edge chk_edge)
     return ret;
 }
 
+Edge getEdge(Point a, Point b)
+{
+    Edge ret;
+    if (fabs(a.x-b.x)<1e-8) {
+        ret.e_base = a.x;
+        if (a.y < b.y) {
+            ret.e_l = a.y;
+            ret.e_r = b.y;
+            ret.type = 0; //LEFT
+        }
+        else {
+            ret.e_l = b.y;
+            ret.e_r = a.y;
+            ret.type = 1; //RIGHT
+        }
+    }
+    else {
+        ret.e_base = a.y;
+        if (a.x < b.x) {
+            ret.e_l = a.x;
+            ret.e_r = b.x;
+            ret.type = 2; // UP
+        }
+        else {
+            ret.e_l = b.x;
+            ret.e_r = a.x;
+            ret.type = 3; //DOWN
+        }
+    }
+    return ret;
+}
+
 std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
 {
     std::vector<Polygon> res;
-    Edge pol[5011];
-    Edge hist[5011];
-    Point gram[5011];
-    Point left_pol[5011];
+    Edge *pol;
+    Edge *hist;
+    Point *gram;
+    Point *left_pol;
     int base_type;
 
     res.clear();
@@ -99,37 +143,16 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
     Point *a;
     n = pl.n;
     a = new Point[n+2];
+    pol = new Edge[n+4];
+    hist = new Edge[n+4];
+    gram = new Point[n+4];
+    left_pol = new Point[n+4];
     for (int i = 0; i <= n+1; i++) {
         a[i].x = pl.a[i].x;
         a[i].y = pl.a[i].y;
     }
     for (int i = 1; i <= n; i++) {
-        if (fabs(a[i].x-a[i+1].x) < 1e-8) {
-            pol[i].e_base = a[i].x;
-            if (a[i].y < a[i+1].y) {
-                pol[i].e_l = a[i].y;
-                pol[i].e_r = a[i+1].y;
-                pol[i].type = 0; //LEFT
-            }
-            else {
-                pol[i].e_l = a[i+1].y;
-                pol[i].e_r = a[i].y;
-                pol[i].type = 1; //RIGHT
-            }
-        }
-        else {
-            pol[i].e_base = a[i].y;
-            if (a[i].x < a[i+1].x) {
-                pol[i].e_l = a[i].x;
-                pol[i].e_r = a[i+1].x;
-                pol[i].type = 2; //UP
-            }
-            else {
-                pol[i].e_l = a[i+1].x;
-                pol[i].e_r = a[i].x;
-                pol[i].type = 3; //DOWN
-            }
-        }
+        pol[i] = getEdge(a[i], a[i+1]);
     }
     base_type = pol[ed_id].type;
     int tot, ti, rd;
@@ -345,7 +368,82 @@ std::vector<Polygon> GetBaseHistogram(Polygon pl, int ed_id)
         last_in = tmp;
     }
     delete a;
+    delete pol;
+    delete left_pol;
+    delete hist;
+    delete gram;
     return res;
+}
+
+std::vector<MatchEdge> GetPropagation(Polygon pl)
+{
+    std::vector<MatchEdge> ret;
+    ret.clear();
+    Edge *hist;
+    int hist_tot,n;
+    hist_tot = 0;
+    n = pl.n;
+    hist = new Edge[n+3];
+
+    Edge smp_ed, ths_ed, res_ed;
+    int base_type;
+    
+    smp_ed = getEdge(pl.a[2], pl.a[3]);
+    base_type = smp_ed.type;
+    for (int i = 2; i <= n; i+=2) {
+        ths_ed = getEdge(pl.a[i], pl.a[i+1]);
+        if (ths_ed.type == base_type) {
+            hist_tot++;
+            hist[hist_tot] = ths_ed;
+        }
+        if (ths_ed.type == (base_type^1)) {
+            while (hist_tot > 0) {
+                if (base_type == 0 || base_type == 2) {
+                    if (ths_ed.e_l >= hist[hist_tot].e_r) break;
+                    if (ths_ed.e_l <= hist[hist_tot].e_l) {
+                        ret.push_back(MatchEdge(hist[hist_tot].e_base, ths_ed.e_base, hist[hist_tot].e_l, hist[hist_tot].e_r));
+                        hist_tot--;
+                    }
+                    else {
+                        ret.push_back(MatchEdge(hist[hist_tot].e_base, ths_ed.e_base, ths_ed.e_l, hist[hist_tot].e_r));
+                        hist[hist_tot].e_r = ths_ed.e_l;
+                    }
+                }
+                else {
+                    if (ths_ed.e_r <= hist[hist_tot].e_l) break;
+                    if (ths_ed.e_r <= hist[hist_tot].e_r) {
+                        ret.push_back(MatchEdge(hist[hist_tot].e_base, ths_ed.e_base, hist[hist_tot].e_l, hist[hist_tot].e_r));
+                        hist_tot--;
+                    }
+                    else {
+                        ret.push_back(MatchEdge(hist[hist_tot].e_base, ths_ed.e_base, hist[hist_tot].e_l, ths_ed.e_r));
+                        hist[hist_tot].e_l = ths_ed.e_r;
+                    }
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+void GetLighthouse(Polygon pl)
+{
+    std::vector<MatchEdge> propa;
+    propa = GetPropagation(pl);
+    Edge my_base, s_base;
+    my_base = getEdge(pl.a[1], pl.a[2]);
+    double s_c;
+
+    for (int i = 0; i < pl.son_base.size(); i++) {
+        s_base = pl.son_base[i];
+        if (fabs(s_base.e_l - my_base.e_base) > fabs(s_base.e_r - my_base.e_base)) s_c = s_base.e_l;
+        else s_c = s_base.e_r;
+        for (int j = 0; j < propa.size(); j++) {
+            
+        }
+    }
+
+
 }
 
 std::vector<Polygon> HistoPart(Polygon pl, int ed_id)
@@ -379,6 +477,19 @@ std::vector<Polygon> HistoPart(Polygon pl, int ed_id)
         }
         l++;
     }
+
+    int fa;
+    Edge s_base;
+    //solve the lighthouse problem
+    for (int i = 0; i < res.size(); i++) {
+        fa = res[i].fa_id;
+        s_base = getEdge(res[i].a[1], res[i].a[2]);
+        if (fa != -1) {
+            res[fa].son.push_back(i);
+            res[fa].son_base.push_back(s_base);
+        }
+    }
+
     return res;
 }
 
