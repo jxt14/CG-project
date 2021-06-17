@@ -15,10 +15,6 @@ struct Point{
     Point():x(0),y(0) {}
     Point(double x_, double y_):x(x_), y(y_) {}
     Point(const Point& p):x(p.x), y(p.y) {}
-
-    void print() {
-        printf("(%f, %f)\n", x, y);
-    }
 };
 
 struct Edge{
@@ -67,14 +63,6 @@ struct LightHouse{
 struct Input {
     Polygon p;
     int base;
-
-    void print() {
-        printf("n: %d\n", p.n);
-        for(auto v: p.a) {
-            v.print();
-        }
-        printf("base: %d\n", base);
-    }
 };
 
 int in_segment(Point r, Point a, Point b)
@@ -435,7 +423,7 @@ std::vector<MatchEdge> GetPropagation(Polygon pl)
                 }
                 else {
                     if (ths_ed.e_r <= hist[hist_tot].e_l) break;
-                    if (ths_ed.e_r <= hist[hist_tot].e_r) {
+                    if (ths_ed.e_r >= hist[hist_tot].e_r) {
                         ret.push_back(MatchEdge(hist[hist_tot].e_base, ths_ed.e_base, hist[hist_tot].e_l, hist[hist_tot].e_r));
                         hist_tot--;
                     }
@@ -474,13 +462,17 @@ std::vector<LightHouse> GetLighthouse(Polygon pl)
         }
     }
 
+    //printf("Propa:%d\n", propa.size());
+
     int tc;
     for (int i = 0; i < num_son; i++) {
         s_base = pl.son_base[i];
         tc = 0;
         if (fabs(s_base.e_l - my_base.e_base) > fabs(s_base.e_r - my_base.e_base)) s_c = s_base.e_l;
         else s_c = s_base.e_r;
+        //printf("son_base:%.2lf %.2lf %.2lf std:%.2lf\n", s_base.e_base, s_base.e_l, s_base.e_r, s_c);
         for (int j = 0; j < propa.size(); j++) {
+            //printf("propa_info:%.2lf %.2lf %.2lf %.2lf\n", propa[j].base_l, propa[j].base_r, propa[j].e_l, propa[j].e_r);
             if (propa[j].e_l <= s_c && propa[j].e_r >= s_c) {
                 if (fabs(propa[j].base_l - s_base.e_base) < 1e-8 || fabs(propa[j].base_r - s_base.e_base) < 1e-8) {
                     tot++;
@@ -506,6 +498,8 @@ std::vector<LightHouse> GetLighthouse(Polygon pl)
             }
         }
     }
+
+    //printf("intsize:%d\n", interval.size());
 
     std::vector<LightHouse> ret;
     Edge ths_ed;
@@ -592,6 +586,7 @@ std::vector<LightHouse> solveLH(Polygon pl, int ed_id)
     ret.clear();
     for (int i = 0; i < hists.size(); i++) {
         if (hists[i].son.size() != 0) {
+            //printf("%d\n", i);
             tmplh = GetLighthouse(hists[i]);
             for (int j = 0; j < tmplh.size(); j++) ret.push_back(tmplh[j]);
         }
@@ -599,13 +594,8 @@ std::vector<LightHouse> solveLH(Polygon pl, int ed_id)
 
     ret.push_back(LightHouse(pl.a[ed_id].x, pl.a[ed_id].y, pl.a[ed_id+1].x, pl.a[ed_id+1].y));
     return ret;
-}
 
-void to_json(json& j, const LightHouse& lh) {
-    j["x"] = {lh.ax, lh.ay};
-    j["y"] = {lh.bx, lh.by};
 }
-
 
 void to_json(json &j, const Polygon& polygon) {
     j["n"] = polygon.n;
