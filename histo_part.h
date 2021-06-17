@@ -25,6 +25,11 @@ struct Edge{
     Edge(double b_, double l_, double r_, int t_): e_base(b_), e_l(l_), e_r(r_), type(t_) {} 
 };
 
+bool cmpe(Edge a, Edge b)
+{
+    return a.e_l > b.e_l;
+}
+
 struct MatchEdge{
     double base_l, base_r;
     double e_l, e_r;
@@ -429,20 +434,58 @@ std::vector<MatchEdge> GetPropagation(Polygon pl)
 void GetLighthouse(Polygon pl)
 {
     std::vector<MatchEdge> propa;
+    std::vector<Edge> interval;
+    Edge *tmp_int;
+    interval.clear();
     propa = GetPropagation(pl);
     Edge my_base, s_base;
     my_base = getEdge(pl.a[1], pl.a[2]);
     double s_c;
+    double tmpl;
+    int tot, num_son;
+    num_son = pl.son_base.size();
+    tmp_int = new Edge[num_son + 2];
 
-    for (int i = 0; i < pl.son_base.size(); i++) {
-        s_base = pl.son_base[i];
-        if (fabs(s_base.e_l - my_base.e_base) > fabs(s_base.e_r - my_base.e_base)) s_c = s_base.e_l;
-        else s_c = s_base.e_r;
-        for (int j = 0; j < propa.size(); j++) {
-            
+    for (int i = 0; i < propa.size(); i++) {
+        if (propa[i].base_l > propa[i].base_r) {
+            tmpl = propa[i].base_l;
+            propa[i].base_l = propa[i].base_r;
+            propa[i].base_r = tmpl;
         }
     }
 
+    int tc;
+    for (int i = 0; i < num_son; i++) {
+        s_base = pl.son_base[i];
+        tc = 0;
+        if (fabs(s_base.e_l - my_base.e_base) > fabs(s_base.e_r - my_base.e_base)) s_c = s_base.e_l;
+        else s_c = s_base.e_r;
+        for (int j = 0; j < propa.size(); j++) {
+            if (propa[j].e_l >= s_c && propa[j].e_r <= s_c) {
+                if (fabs(propa[j].base_l - s_base.e_base) < 1e-8 || fabs(propa[j].base_r - s_base.e_base) < 1e-8) {
+                    tot++;
+                    tc = 1;
+                    tmp_int[tot] = Edge(my_base.e_base, propa[j].base_l, propa[j].base_r, my_base.type);
+                }
+            }
+            if (tc == 1) break;
+        }
+    }
+
+    std::sort(tmp_int+1, tmp_int+1+tot, cmpe);
+    double minl;
+    for (int i = 1; i <= tot; i++) {
+        if (i == 1) {
+            minl = tmp_int[i].e_l;
+            interval.push_back(tmp_int[i]);
+        }
+        else {
+            if (tmp_int[i].e_r < minl) {
+                minl = tmp_int[i].e_l;
+                interval.push_back(tmp_int[i]);
+            }
+        }
+    }
 
 }
 
