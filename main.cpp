@@ -44,6 +44,18 @@ int main() {
         res.set_content(str, "application/json");
     });
 
+    server.Post("/solve", [](const httplib::Request& req, httplib::Response& res) {
+        printf("solve called\n");
+        auto j = json::parse(req.body);
+        histogram::Input input;
+        j.get_to(input);
+        input.print();
+
+        json lh = solveLH(input.p, input.base);
+        auto str = lh.dump();
+        res.set_header("Access-Control-Allow-Origin", "*");
+        res.set_content(str, "application/json");
+    });
 
     auto ret = server.set_mount_point("/", "../static");
     if (!ret) {
