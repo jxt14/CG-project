@@ -49,7 +49,6 @@ int main() {
         auto j = json::parse(req.body);
         histogram::Input input;
         j.get_to(input);
-        input.print();
 
         json lh = solveLH(input.p, input.base);
         auto str = lh.dump();

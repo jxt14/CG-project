@@ -57,7 +57,7 @@
         };
         const polyRanger = d3.select('#poly-range')
         const hisRanger = d3.select('#his-range')
-        let zoom = d3.zoom().on('zoom', zoomed);
+        let zoom = d3.zoom().on('zoom', zoomed)
 
         d3.select("button#generate-btn").on("click", function () {
             console.log("click generate")
@@ -277,19 +277,20 @@
 
             const base = rect_polygon.base
             const baseline = [[rect_polygon.vertices[base - 1], rect_polygon.vertices[base % rect_polygon.n]]]
-            g.selectAll('path.base').data(baseline).join('path')
-                .attr('class', 'base')
-                .attr('d', line => `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`)
-                .attr('stroke', 'red')
-                .style('fill', 'none')
-                .attr('stroke-width', 5)
             
             g.selectAll('path.lighthouse').data(lighthouses).join('path')
                 .attr('class', 'lighthouse')
                 .attr('d', line => `M${xScale(line.x[0])},${yScale(line.x[1])}L${xScale(line.y[0])},${yScale(line.y[1])}`)
                 .attr('stroke', 'green')
                 .style('fill', 'none')
-                .attr('stroke-width', 10)
+                .attr('stroke-width', 5)
+
+            g.selectAll('path.base').data(baseline).join('path')
+                .attr('class', 'base')
+                .attr('d', line => `M${xScale(line[0][0])},${yScale(line[0][1])}L${xScale(line[1][0])},${yScale(line[1][1])}`)
+                .attr('stroke', 'red')
+                .style('fill', 'none')
+                .attr('stroke-width', 5)
         }
 
         function render_partition(n) {

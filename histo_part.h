@@ -15,6 +15,10 @@ struct Point{
     Point():x(0),y(0) {}
     Point(double x_, double y_):x(x_), y(y_) {}
     Point(const Point& p):x(p.x), y(p.y) {}
+
+    void print() {
+        printf("(%.1f, %.1f)\n", x, y);
+    }
 };
 
 struct Edge{
@@ -63,6 +67,14 @@ struct LightHouse{
 struct Input {
     Polygon p;
     int base;
+
+    void print() {
+        printf("n: %d\n", p.n);
+        for(auto v: p.a) {
+            v.print();
+        }
+        printf("base: %d\n", base);
+    }
 };
 
 int in_segment(Point r, Point a, Point b)
@@ -595,6 +607,11 @@ std::vector<LightHouse> solveLH(Polygon pl, int ed_id)
     ret.push_back(LightHouse(pl.a[ed_id].x, pl.a[ed_id].y, pl.a[ed_id+1].x, pl.a[ed_id+1].y));
     return ret;
 
+}
+
+void to_json(json& j, const LightHouse& lh) {
+    j["x"] = {lh.ax, lh.ay};
+    j["y"] = {lh.bx, lh.by};
 }
 
 void to_json(json &j, const Polygon& polygon) {
