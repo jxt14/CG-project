@@ -46,14 +46,14 @@
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
         const mainGroup = canvasSvg.append('g')
-            .attr('transform', `translate(${margin.left}, ${margin.top})`)
+            .attr('transform', `translate(${margin.left},${margin.top})`)
         
         const polygonGroup = mainGroup.append('g').attr('id', 'polygon-group')
         const histoGroup = mainGroup.append('g').attr('id', 'histo-group')
         const lhGroup = mainGroup.append('g').attr('id', 'lh-group')
 
         const zoomed = ({ transform }) => {
-            mainGroup.attr('transform', `translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`)
+            mainGroup.attr('transform', `translate(${margin.left + transform.x},${margin.top + transform.y}) scale(${transform.k})`)
         };
 
         // const zoomed = ({ transform }) => {
@@ -248,12 +248,29 @@
                 .style('fill', 'black')
         }
 
+        function string_to_transform(trans_str) {
+            trans_str = trans_str.replace(/\s+/, '')
+            let xy_pattern = new RegExp(/translate\(([-+]?(?:\d*\.?\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?),([-+]?(?:\d*\.?\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?)\)/)
+            let scale_pattern = new RegExp(/scale\(([-+]?(?:\d*\.?\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?)\)/)
+            let m = trans_str.match(xy_pattern)
+            const x = +m[1]
+            const y = +m[2]
+            m = trans_str.match(scale_pattern)
+            const scale = m ? +m[1] : 1
+            return {
+                x: x,
+                y: y,
+                scale: scale,
+            }
+        }
+
         function render_lighthouse() {
             let g = lhGroup.attr('visibility', 'visible')
             polygonGroup.attr('visibility', 'hidden')
             histoGroup.attr('visibility', 'hidden')
 
             const sp = d3.scalePoint().domain(histograms.map(h => h.id)).range([0, 1]);
+            g.selectAll("circle").remove();
             g.selectAll('polygon.histogram').data(histograms, h => h.id).join('polygon')
                 .attr('class', 'histogram')
                 .attr('points', h => h.vertices.map(v => `${xScale(v[0])},${yScale(v[1])}`))
@@ -264,7 +281,11 @@
                 .on("click", function(event, d)
                 {
                     g.selectAll("circle").remove();
-                    var pos = [xScale.invert(event.offsetX), yScale.invert(event.offsetY)];
+                    let t = string_to_transform(mainGroup.attr('transform'));
+                    let offsetX = (event.offsetX - t.x) / t.scale
+                    let offsetY = (event.offsetY - t.y) / t.scale
+
+                    var pos = [xScale.invert(offsetX), yScale.invert(offsetY)];
                     var boat = g
                     .append("circle")
                     .attr("cx", xScale(pos[0]))
@@ -281,6 +302,8 @@
                     while (i >= 0)
                     {
                         var tmp = lighthouses[histograms[i].lhid];
+                        // console.log(tmp)
+
                         var dist;
                         if (tmp.x[0] == tmp.y[0])
                         {
@@ -295,7 +318,7 @@
                         trans = trans.transition()
                         .attr("cx", xScale(pos[0]))
                         .attr("cy", yScale(pos[1]))
-                        .duration( function() { return dist * 100; });
+                        .duration( function() { return 500; });
                         i = histograms[i].parent;
                     }
                 })
@@ -325,7 +348,7 @@
                 .attr('d', line => `M${xScale(line.x[0])},${yScale(line.x[1])}L${xScale(line.y[0])},${yScale(line.y[1])}`)
                 .attr('stroke', 'green')
                 .style('fill', 'none')
-                .attr('stroke-width', 5)
+                .attr('stroke-width', 2)
 
             g.selectAll('path.base').data(baseline).join('path')
                 .attr('class', 'base')

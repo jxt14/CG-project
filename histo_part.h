@@ -648,6 +648,7 @@ void to_json(json &j, const Polygon& polygon) {
     j["id"] = polygon.id;
     j["parent"] = polygon.fa_id;
     j["vertices"] = json::array();
+    j["lhid"] = polygon.lh_id;
     auto vertices = polygon.a;
 
     for(int i = 1; i <= polygon.n; i ++) {
