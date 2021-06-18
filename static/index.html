@@ -64,9 +64,7 @@
         let zoom = d3.zoom().on('zoom', zoomed)
 
         d3.select("button#generate-btn").on("click", function () {
-            console.log("click generate")
             let n = document.getElementById('n-vertices').value
-            console.log(n)
             if(!(n % 2 == 0 && n >= 4 && n <= 1000)) {
                 alert("n must be even and in [4, 1000].")
             }
@@ -107,7 +105,6 @@
         })
 
         d3.select("button#partition-btn").on("click", function () {
-            console.log("click partition")
             if(!rect_polygon) {
                 alert("Please generate a random polygon first.")
             } else {
@@ -116,7 +113,6 @@
                     headers: {"content-type": "application/json"},
                     method: "POST",
                 }).then((data) => {
-                    console.log(data)
                     histograms = data
                     render_partition()
                     d3.select('#range').style('visibility', 'visible')
@@ -150,7 +146,6 @@
                     headers: {"content-type": "application/json"},
                     method: "POST",
                 }).then((data) => {
-                    console.log(data)
                     lighthouses = data
                     render_lighthouse()
                     // polyRanger.style('display', 'none')
@@ -302,7 +297,6 @@
                     while (i >= 0)
                     {
                         var tmp = lighthouses[histograms[i].lhid];
-                        // console.log(tmp)
 
                         var dist;
                         if (tmp.x[0] == tmp.y[0])
