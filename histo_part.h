@@ -44,15 +44,19 @@ struct MatchEdge{
 struct Polygon{
     int n;
     int id, fa_id;
+    int lh_id;
     std::vector<Point> a;
     std::vector<int> son;
     std::vector<Edge> son_base;
+    std::vector<int> son_lh;
     Polygon() {
         a.clear();
         son.clear();
         son_base.clear();
+        son_lh.clear();
         n = 0;
         id = 0;
+        lh_id = -1;
         fa_id = -1;
     }
 };
@@ -450,7 +454,7 @@ std::vector<MatchEdge> GetPropagation(Polygon pl)
     return ret;
 }
 
-std::vector<LightHouse> GetLighthouse(Polygon pl)
+std::vector<LightHouse> GetLighthouse(Polygon &pl)
 {
     std::vector<MatchEdge> propa;
     std::vector<Edge> interval;
@@ -465,6 +469,9 @@ std::vector<LightHouse> GetLighthouse(Polygon pl)
     tot = 0;
     num_son = pl.son_base.size();
     tmp_int = new Edge[num_son + 2];
+
+    int *rk;
+    rk = new int[num_son + 2];
 
     for (int i = 0; i < propa.size(); i++) {
         if (propa[i].base_l > propa[i].base_r) {
@@ -489,7 +496,7 @@ std::vector<LightHouse> GetLighthouse(Polygon pl)
                 if (fabs(propa[j].base_l - s_base.e_base) < 1e-8 || fabs(propa[j].base_r - s_base.e_base) < 1e-8) {
                     tot++;
                     tc = 1;
-                    tmp_int[tot] = Edge(my_base.e_base, propa[j].base_l, propa[j].base_r, my_base.type);
+                    tmp_int[tot] = Edge(my_base.e_base, propa[j].base_l, propa[j].base_r, i);
                 }
             }
             if (tc == 1) break;
@@ -509,6 +516,11 @@ std::vector<LightHouse> GetLighthouse(Polygon pl)
                 interval.push_back(tmp_int[i]);
             }
         }
+        rk[tmp_int[i].type] = interval.size() - 1;
+    }
+
+    for (int i = 0; i < num_son; i++) {
+        pl.son_lh.push_back(rk[i]);
     }
 
     //printf("intsize:%d\n", interval.size());
@@ -537,6 +549,7 @@ std::vector<LightHouse> GetLighthouse(Polygon pl)
         if (bz >= interval.size()) break;
     }
     delete tmp_int;
+    delete rk;
     return ret;
 
 }
@@ -584,6 +597,22 @@ std::vector<Polygon> HistoPart(Polygon pl, int ed_id)
             res[fa].son_base.push_back(s_base);
         }
     }
+
+    std::vector<LightHouse> tmplh;
+    int lhsize;
+    lhsize = 0;
+    for (int i = 0; i < res.size(); i++) {
+        if (res[i].son.size() != 0) {
+            //printf("%d\n", i);
+            tmplh = GetLighthouse(res[i]);
+            for (int j = 0; j < res[i].son.size(); j++) {
+                res[res[i].son[j]].lh_id = lhsize + res[i].son_lh[j];
+            }
+            lhsize = lhsize + tmplh.size();
+        }
+    }
+
+    res[0].lh_id = lhsize;
 
     return res;
 }
