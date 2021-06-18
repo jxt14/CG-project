@@ -14,8 +14,8 @@
         <button id="generate-btn" class="button">Generate</button>
         <button id="partition-btn" class="button">Partition</button>
         <button id="solve-btn" class="button">Solve</button>
-        <button id="drawinput-btn" class="button">DrawInput</button>
-        <button id="drawhistogram-btn" class="button">DrawHistogram</button>
+        <button id="drawinput-btn" class="button">Draw Input</button>
+        <button id="drawhistogram-btn" class="button">Draw Histogram</button>
         <button id="reset-btn" class="button">Reset</button>
         <br>
         <br>
@@ -46,15 +46,19 @@
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
         const mainGroup = canvasSvg.append('g')
-            .attr('transform', `translate(${margin.left}, ${margin.top})`);
+            .attr('transform', `translate(${margin.left}, ${margin.top})`)
         
-        const polygonGroup = mainGroup.append('g')
-        const histoGroup = mainGroup.append('g')
-        const lhGroup = mainGroup.append('g')
+        const polygonGroup = mainGroup.append('g').attr('id', 'polygon-group')
+        const histoGroup = mainGroup.append('g').attr('id', 'histo-group')
+        const lhGroup = mainGroup.append('g').attr('id', 'lh-group')
 
         const zoomed = ({ transform }) => {
             mainGroup.attr('transform', `translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`)
         };
+
+        // const zoomed = ({ transform }) => {
+        //     mainGroup.attr('transform', transform)
+        // };
         const polyRanger = d3.select('#poly-range')
         const hisRanger = d3.select('#his-range')
         let zoom = d3.zoom().on('zoom', zoomed)
@@ -157,7 +161,7 @@
         })
 
         function init() {
-            mainGroup.call(zoom)
+            canvasSvg.call(zoom)
             polyRanger.on('input', function () {
                 let i = polyRanger.property('value')
                 if(i == polyRanger.property('max')) {
@@ -177,7 +181,7 @@
         init()
 
         d3.select("button#reset-btn").on('click', function() {
-            mainGroup.call(zoom.transform, d3.zoomIdentity)
+            canvasSvg.transition().duration(750).call(zoom.transform, d3.zoomIdentity)
         })
 
         function render_cut(polygon, show) {
@@ -223,7 +227,7 @@
                 .attr('points', vs => vs.map(v => `${xScale(v[0])},${yScale(v[1])}`).join(' '))
                 .attr('stroke', 'black')
                 .attr('class', 'input')
-                .style('fill', 'none')
+                .style('fill', 'white')
                 .attr('stroke-width', 2)
             
             const base = polygon.base
