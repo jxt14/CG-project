@@ -1,42 +1,88 @@
-# CG-project
+# Lighthouse Problem
 
 ## Compile and Run
+### Windows
+
+- Requirements: cmake, MSVC
+
+- Compile: 在src文件夹下：
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release
+```
+
+- Run:
+  - 运行完整项目
+
+    ```bash
+    .\Release\lighthouse.exe
+    ```
+
+    打开 http://127.0.0.1:8080/index.html，进行交互操作
+
+  - 生成测试用例（以点数1000为例）
+
+    ```bash
+    .\Release\generation_test.exe 1000 > in.txt
+    ```
+
+  - 对测试用例执行直方图划分
+
+    ```
+    .\Release\histogram_test.exe < in.txt
+    ```
+
+  - 对测试用例求解灯塔问题
+
+    ```
+    .\Release\solve_test.exe < in.txt
+    ```
+
+- 开发环境：Windows 10, cmake 3.20.3, MSVC 19.24.28314.0 with Windows SDK 10.0.18362.0
+
 ### MacOS
 
+- Requirements: cmake, make, g++(clang)
+- Compile: 在src文件夹下：
+
 ```bash
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
-./lighthouse
 ```
-### Windows
-```bash
-mkdir build
-cd build
-cmake ..
-```
+- Run:
 
-这里会默认使用MSVC而不是MinGW，如下图
+  - 运行完整项目
 
-![image](image/screenshot.png)
+    ```bash
+    ./lighthouse
+    ```
 
-```bash
-cmake --build .
-```
+    打开 http://127.0.0.1:8080/index.html，进行交互操作
 
-会在Debug文件夹下生成可执行文件
+  - 生成测试用例（以点数1000为例）
 
-```bash
-.\Debug\lighthouse.exe
-```
+    ```bash
+    ./generation_test 1000 > in.txt
+    ```
 
+  - 对测试用例执行直方图划分
 
+    ```
+    ./histogram_test < in.txt
+    ```
 
-## How to use
-open http://127.0.0.1:8080/index.html
+  - 对测试用例求解灯塔问题
 
-input an even number (4 <= n <= 1000) and click `generate`
+    ```
+    ./solve_test < in.txt
+    ```
+
+- 开发环境：MacOS 10.15.6, cmake 3.18.4, GNU make 3.81, Apple clang 12.0.0
 
 
 
