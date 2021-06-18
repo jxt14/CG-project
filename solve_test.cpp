@@ -30,12 +30,9 @@ int main()
         p_in.a.push_back(Point(a[i].x, a[i].y));
     }
     scanf("%d", &ed_id);
-    p_res = HistoPart(p_in, ed_id);
-    
-    for (int i = 0; i < p_res.size(); i++) {
-        printf("Histogram: %d FatherHis:%d\n", p_res[i].id, p_res[i].fa_id);
-        for (int j = 1; j <= p_res[i].n; j++) {
-            printf("%.2lf %.2lf\n", p_res[i].a[j].x, p_res[i].a[j].y);
-        }
+    std::vector<LightHouse> res;
+    res = solveLH(p_in, ed_id);
+    for (int i = 0; i < res.size(); i++) {
+        printf("%.2lf %.2lf %.2lf %.2lf\n", res[i].ax, res[i].ay, res[i].bx, res[i].by);
     }
 }

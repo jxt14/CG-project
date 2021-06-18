@@ -8,6 +8,7 @@ set(CMAKE_CXX_FLAGS "-O2")
 add_executable(lighthouse main.cpp)
 add_executable(generation_test random_polygon_test.cpp)
 add_executable(histogram_test histo_part_test.cpp)
+add_executable(solve_test solve_test.cpp)
 
 
 
