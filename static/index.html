@@ -15,7 +15,7 @@
         <button id="partition-btn" class="button">Partition</button>
         <button id="solve-btn" class="button">Solve</button>
         <button id="drawinput-btn" class="button">Draw Input</button>
-        <button id="drawhistogram-btn" class="button">Draw Histogram</button>
+        <button id="drawhistogram-btn" class="button" style="display: none">Draw Histogram</button>
         <button id="reset-btn" class="button">Reset</button>
         <br>
         <br>
@@ -28,7 +28,7 @@
     </div>
     <br>
 
-    <svg width="1000" height="1000" id="canvas" class="svgs" 
+    <svg width="1500" height="1500" id="canvas" class="svgs" 
         style='display: block; margin: 0 auto; border:rgb(85, 85, 85); border-style: solid; border-width: 1px;'></svg>
 
     <script>
@@ -108,21 +108,32 @@
             if(!rect_polygon) {
                 alert("Please generate a random polygon first.")
             } else {
-                d3.json(`http://127.0.0.1:8080/partition`, {
-                    body: JSON.stringify(rect_polygon),
-                    headers: {"content-type": "application/json"},
-                    method: "POST",
-                }).then((data) => {
-                    histograms = data
+                if(histograms) {
                     render_partition()
                     d3.select('#range').style('visibility', 'visible')
                     polyRanger.style('display', 'none')
                     hisRanger.style('display', 'inline')
                         .style('display', 'inline')
                         .attr('min', 0)
-                        .attr('max', data.length)
-                        .attr('value', data.length)
-                })
+                        .attr('max', histograms.length)
+                        .attr('value', histograms.length)
+                } else {
+                    d3.json(`http://127.0.0.1:8080/partition`, {
+                        body: JSON.stringify(rect_polygon),
+                        headers: {"content-type": "application/json"},
+                        method: "POST",
+                    }).then((data) => {
+                        histograms = data
+                        render_partition()
+                        d3.select('#range').style('visibility', 'visible')
+                        polyRanger.style('display', 'none')
+                        hisRanger.style('display', 'inline')
+                            .style('display', 'inline')
+                            .attr('min', 0)
+                            .attr('max', histograms.length)
+                            .attr('value', histograms.length)
+                    })
+                }
             }
         })
 
@@ -141,17 +152,21 @@
             if(!rect_polygon || !histograms) {
                 alert("Please generate a random polygon and partition it first.")
             } else {
-                d3.json('http://127.0.0.1:8080/solve', {
-                    body: JSON.stringify(rect_polygon),
-                    headers: {"content-type": "application/json"},
-                    method: "POST",
-                }).then((data) => {
-                    lighthouses = data
+                if(lighthouses) {
                     render_lighthouse()
-                    // polyRanger.style('display', 'none')
-                    // hisRanger.style('display', 'none')
                     d3.select('#range').style('visibility', 'hidden')
-                })
+                }
+                else {
+                    d3.json('http://127.0.0.1:8080/solve', {
+                        body: JSON.stringify(rect_polygon),
+                        headers: {"content-type": "application/json"},
+                        method: "POST",
+                    }).then((data) => {
+                        lighthouses = data
+                        render_lighthouse()
+                        d3.select('#range').style('visibility', 'hidden')
+                    })
+                }
             }
         })
 
@@ -342,7 +357,7 @@
                 .attr('d', line => `M${xScale(line.x[0])},${yScale(line.x[1])}L${xScale(line.y[0])},${yScale(line.y[1])}`)
                 .attr('stroke', 'green')
                 .style('fill', 'none')
-                .attr('stroke-width', 2)
+                .attr('stroke-width', 5)
 
             g.selectAll('path.base').data(baseline).join('path')
                 .attr('class', 'base')
