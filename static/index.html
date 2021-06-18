@@ -261,6 +261,44 @@
                 .style("fill", h => d3.interpolateSpectral(sp(h.id)))
                 .style('opacity', 0.5)
                 .attr('stroke-width', 1)
+                .on("click", function(event, d)
+                {
+                    g.selectAll("circle").remove();
+                    var pos = [xScale.invert(event.offsetX), yScale.invert(event.offsetY)];
+                    var boat = g
+                    .append("circle")
+                    .attr("cx", xScale(pos[0]))
+                    .attr("cy", yScale(pos[1]))
+                    .attr("r", 5.0)
+                    .attr("fill", "black");
+
+                    var his = d;
+                    var i = d.id;
+
+                    var trans = g.select("circle")
+                    .transition();
+
+                    while (i >= 0)
+                    {
+                        var tmp = lighthouses[histograms[i].lhid];
+                        var dist;
+                        if (tmp.x[0] == tmp.y[0])
+                        {
+                        dist = Math.abs(pos[0] - tmp.x[0]);
+                        pos = [tmp.x[0], pos[1]];
+                        }
+                        else
+                        {
+                        dist = Math.abs(pos[1] - tmp.x[1]);
+                        pos = [pos[0], tmp.x[1]];
+                        }
+                        trans = trans.transition()
+                        .attr("cx", xScale(pos[0]))
+                        .attr("cy", yScale(pos[1]))
+                        .duration( function() { return dist * 100; });
+                        i = histograms[i].parent;
+                    }
+                })
             
             g.selectAll('path.bases').data(histograms).join('path')
                 .attr('class', 'bases')
